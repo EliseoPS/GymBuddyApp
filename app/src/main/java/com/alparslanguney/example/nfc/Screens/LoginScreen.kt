@@ -58,9 +58,9 @@ fun LoginScreen(innerPadding: PaddingValues, navController: NavController){
             color = MaterialTheme.colorScheme.onBackground
         )
         Image(
-            painter = painterResource(R.drawable.ic_launcher_background),
+            painter = painterResource(R.drawable.loginimagegymbuddy),
             contentDescription = "Login",
-            modifier = Modifier.size(200.dp)
+            modifier = Modifier.size(200.dp).padding(vertical = 15.dp)
         )
         OutlinedTextField(
             value = email,
@@ -117,7 +117,7 @@ fun LoginScreen(innerPadding: PaddingValues, navController: NavController){
                 disabledContainerColor = MaterialTheme.colorScheme.onSurface
             ),
             onClick = {
-                navController.navigate(Screens.HomeScreen.route)
+                navController.navigate(Screens.ExerciseSelectScreen.route)
 
             },
         ){

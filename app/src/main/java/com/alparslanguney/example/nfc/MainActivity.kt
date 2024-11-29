@@ -39,6 +39,70 @@ class MainActivity : ComponentActivity() {
 
     private var nfcAdapter: NfcAdapter? = null
 
+    fun enableNfcForegroundDispatch() {
+        nfcAdapter?.let { adapter ->
+            if (adapter.isEnabled) {
+                val nfcIntentFilter = arrayOf(
+                    IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED),
+                    IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED),
+                    IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED)
+                )
+
+                val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                        PendingIntent.FLAG_MUTABLE
+                    )
+                } else {
+                    PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+                }
+                adapter.enableForegroundDispatch(
+                    this, pendingIntent, nfcIntentFilter, null
+                )
+            }
+        }
+    }
+
+    fun disableNfcForegroundDispatch() {
+        nfcAdapter?.disableForegroundDispatch(this)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        enableNfcForegroundDispatch()
+    }
+    override fun onPause() {
+        super.onPause()
+        disableNfcForegroundDispatch()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        val action = intent?.action
+        Log.d("NFC", "Intent action: $action")
+
+        if (action == NfcAdapter.ACTION_TAG_DISCOVERED) {
+            val tag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
+            } else {
+                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
+            }
+
+            val ndefMessage = readNdefMessage(tag)
+            if (ndefMessage != null) {
+                Toast.makeText(this, "NFC NDEF Message: $ndefMessage", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "NFC tag detected, but no NDEF data", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -50,6 +114,7 @@ class MainActivity : ComponentActivity() {
                 mutableIntStateOf(0)
             }
             GymBuddyAppTheme {
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -121,71 +186,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        fun enableNfcForegroundDispatch() {
-            nfcAdapter?.let { adapter ->
-                if (adapter.isEnabled) {
-                    val nfcIntentFilter = arrayOf(
-                        IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED),
-                        IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED),
-                        IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED)
-                    )
-
-                    val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        PendingIntent.getActivity(
-                            this,
-                            0,
-                            Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                            PendingIntent.FLAG_MUTABLE
-                        )
-                    } else {
-                        PendingIntent.getActivity(
-                            this,
-                            0,
-                            Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                            PendingIntent.FLAG_UPDATE_CURRENT
-                        )
-                    }
-                    adapter.enableForegroundDispatch(
-                        this, pendingIntent, nfcIntentFilter, null
-                    )
-                }
-            }
-        }
-
-        fun disableNfcForegroundDispatch() {
-            nfcAdapter?.disableForegroundDispatch(this)
-        }
-
-        fun onResume() {
-            super.onResume()
-            enableNfcForegroundDispatch()
-        }
-
-        fun onPause() {
-            super.onPause()
-            disableNfcForegroundDispatch()
-        }
-
-        fun onNewIntent(intent: Intent?) {
-            super.onNewIntent(intent)
-            val action = intent?.action
-            Log.d("NFC", "Intent action: $action")
-
-            if (action == NfcAdapter.ACTION_TAG_DISCOVERED) {
-                val tag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
-                } else {
-                    intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
-                }
-
-                val ndefMessage = readNdefMessage(tag)
-                if (ndefMessage != null) {
-                    Toast.makeText(this, "NFC NDEF Message: $ndefMessage", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "NFC tag detected, but no NDEF data", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
     }
 
     @OptIn(ExperimentalStdlibApi::class)
@@ -213,18 +213,27 @@ class MainActivity : ComponentActivity() {
 
     fun readNdefMessage(tag: Tag?): String? {
         val ndef = Ndef.get(tag)
-        return if (ndef != null) {
-            ndef.connect()
-            val ndefMessage = ndef.ndefMessage
-            val records = ndefMessage?.records
-            val recordData = records?.mapNotNull { record ->
-                record.payload?.let { String(it) }
-            }?.joinToString()
-            ndef.close()
-            recordData
-        } else {
-            Log.d("NFC", "No NDEF records found.")
-            null
+        var data :String? = ""
+        try{
+            if (ndef != null) {
+                ndef.connect()
+                val ndefMessage = ndef.ndefMessage
+                val records = ndefMessage?.records
+                val recordData = records?.mapNotNull { record ->
+                    record.payload?.let { String(it) }
+                }?.joinToString()
+                ndef.close()
+                data = recordData
+
+            } else {
+                Log.d("NFC", "No NDEF records found.")
+                data = null
+            }
+            return data
+        }
+        catch (e:Exception){
+            Log.i("MainError",e.toString())
+            return ""
         }
     }
 }
