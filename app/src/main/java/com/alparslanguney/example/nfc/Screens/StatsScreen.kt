@@ -67,7 +67,7 @@ fun StatsScreen(innerPadding: PaddingValues){
         ){
 //            AsyncImage(
 //                model = ,
-//                contentDescription = ,
+//                contentDescription = ,s
 //            )
         }
 
