@@ -37,8 +37,16 @@ import com.alparslanguney.example.nfc.util.getParcelableCompatibility
 import com.example.gymbuddyapp.Screens.*
 import com.exyte.animatednavbar.AnimatedNavigationBar
 import com.exyte.animatednavbar.animation.indendshape.shapeCornerRadius
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class MainActivity : ComponentActivity() {
+    val currentDate: String
+        get() {
+            val current = LocalDate.now() // Obtén la fecha actual
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            return current.format(formatter)
+        }
 
     private var nfcAdapter: NfcAdapter? = null
 
@@ -189,7 +197,7 @@ class MainActivity : ComponentActivity() {
                             ExerciseSelectScreen(innerPadding = innerPadding, navController = navController)
                         }
                         composable(route = Screens.ManualEntryScreen.route) {
-                            ManualEntryScreen(innerPadding = innerPadding, navController = navController)
+                            ManualEntryScreen(innerPadding = innerPadding, navController = navController,currentDate = currentDate)
                         }
                         composable(route = Screens.NFCEntryScreen.route) {
                             NFCEntryScreen(innerPadding = innerPadding, navController = navController)
