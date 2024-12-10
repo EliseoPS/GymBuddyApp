@@ -20,11 +20,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.alparslanguney.example.nfc.domain.use_cases.SharedPref
 import com.alparslanguney.example.nfc.models.BottomNavigationItem
 import com.alparslanguney.example.nfc.ui.theme.GymBuddyAppTheme
 import com.alparslanguney.example.nfc.util.INTENT_ACTION_NFC_READ
@@ -110,9 +113,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val navController = rememberNavController()
+            val sharedPref = SharedPref(LocalContext.current)
+            val isLogged = sharedPref.getIsLoggedSharedPref()
             var selectedItem by rememberSaveable {
                 mutableIntStateOf(0)
             }
+            val currentBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentScreen = currentBackStackEntry?.destination?.route
             GymBuddyAppTheme {
 
                 Surface(
@@ -129,40 +136,46 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
-                        AnimatedNavigationBar(
-                            selectedIndex = 0,
-                            modifier = Modifier
-                                .height(90.dp),
-                            barColor = Color(0xFFFF931F),
-                            cornerRadius = shapeCornerRadius(cornerRadius = 34.dp)
-                        ) {
-                            BottomNavigationItem.items.forEachIndexed { index, bottomNavigationItem ->
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clickable {
-                                            selectedItem = index
-                                            navController.navigate(bottomNavigationItem.route)
-                                        },
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = bottomNavigationItem.icon,
-                                        contentDescription = bottomNavigationItem.title,
-                                        tint = if (selectedItem == index) Color.White else Color.White.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(26.dp)
-                                    )
-                                    Text(
-                                        text = bottomNavigationItem.title,
-                                        color = if (selectedItem == index) Color.White else Color.White.copy(alpha = 0.5f)
-                                    )
+                        if (currentScreen != Screens.LoginScreen.route) {
+                            AnimatedNavigationBar(
+                                selectedIndex = selectedItem,
+                                modifier = Modifier
+                                    .height(90.dp),
+                                barColor = Color(0xFFFF931F),
+                                cornerRadius = shapeCornerRadius(cornerRadius = 34.dp)
+                            ) {
+                                BottomNavigationItem.items.forEachIndexed { index, bottomNavigationItem ->
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clickable {
+                                                selectedItem = index
+                                                navController.navigate(bottomNavigationItem.route){
+                                                    launchSingleTop = true
+                                                }
+                                            },
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = bottomNavigationItem.icon,
+                                            contentDescription = bottomNavigationItem.title,
+                                            tint = if (selectedItem == index) Color.White else Color.White.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(26.dp)
+                                        )
+                                        Text(
+                                            text = bottomNavigationItem.title,
+                                            color = if (selectedItem == index) Color.White else Color.White.copy(alpha = 0.5f)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 ) { innerPadding ->
-                    NavHost(navController = navController, startDestination = Screens.LoginScreen.route) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = if (isLogged) Screens.ExerciseSelectScreen.route else Screens.LoginScreen.route) {
                         composable(route = Screens.LoginScreen.route) {
                             LoginScreen(innerPadding = innerPadding, navController = navController)
                         }
