@@ -73,6 +73,8 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.logging.interceptor)
     implementation(libs.animated.navigation.bar)
+    implementation ("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.0.0")
+    implementation ("com.google.accompanist:accompanist-navigation-animation:0.16.0")
 
 
 }
